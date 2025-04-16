@@ -1,11 +1,16 @@
 {
   "name": "buzzplay",
   "version": "1.0.0",
+  "type": "module",
   "description": "application with the feature like videos and tweet",
   "main": "index.js",
   "scripts": {
+    "dev":"nodemon src/index.js ",
     "start": "node index.js"
   },
   "author": "Krishna Gupta",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
 }
