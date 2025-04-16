@@ -1,0 +1,11 @@
+{
+  "name": "buzzplay",
+  "version": "1.0.0",
+  "description": "application with the feature like videos and tweet",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Krishna Gupta",
+  "license": "ISC"
+}
