@@ -99,9 +99,10 @@ const loginUser= asyncHandler(async (req,res)=>{
   }
 
   const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)
-  //here we querying db but you can update user because here user does not contain the refreshToken depending upon you can bear this expensive cost
+  //here we querying db but you can update user as user does not contain the refreshToken value here (depending upon you can bear this expensive cost)
   const loggedInUser=await User.findById(user._id).select("-password -refreshToken")
- 
+ //as cookies can be modified through frontend but after passing the options object , 
+ //now it is only moddifiable through server only
   const options ={
     httpOnly:true,
     secure:true
@@ -112,6 +113,9 @@ const loginUser= asyncHandler(async (req,res)=>{
   .json(
     new ApiResponse(
  200,{
+  //here we are explicitely sending the access and refresh token ,considering the case when the user 
+  //is trying to save it for the mobile application as cookie option is not available in mobile apps
+  //or the user is sending you the custom header through API
     user:loggedInUser,accessToken,refreshToken,
  },
  "user logged in successfully")
@@ -120,4 +124,30 @@ const loginUser= asyncHandler(async (req,res)=>{
 )
 })
 
-export {registerUser,loginUser}
+const logoutUser=asyncHandler(async (req,res)=>{
+   
+   await User.findByIdAndUpdate(
+    req.user._id,{
+     refreshToken:undefined
+   },{
+    //it will return the updated user now
+    new:true
+   })
+})
+
+
+const options ={
+  httpOnly:true,
+  secure:true
+}
+
+return res.status(200)
+.clearCookie("accessToken",options)
+.clearCookie("refreshToken",options)
+.json(
+  new ApiResponse(200,{},"User logged out successfully")
+)
+
+
+
+export {registerUser,loginUser,logoutUser}
