@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
-const generateAccessAndRefreshTokens=async(userId){
+const generateAccessAndRefreshTokens=async(userId)=>{
   try {
     
    const user =await User.findById(userId)
@@ -83,18 +83,19 @@ const registerUser= asyncHandler( async (req, res)=>{
 })
 
 const loginUser= asyncHandler(async (req,res)=>{
-  const {username , email,password}=req.body
-  if(!username || !email){
+  const {userName,email , password}=req.body
+ 
+  if(!(userName || email)){
     throw new ApiError(400,"username or email is required")
   }
   const user=await User.findOne({
-    $or:[{username},{email}]
+    $or:[{userName},{email}]
   })
   if(!user){
     throw new ApiError(404,"user does not exist")
   }
   const isPasswordValid =await user.isPasswordCorrect(password)
-  if(!isPasswordCorrect){
+  if(!isPasswordValid){
     throw new ApiError(401,"Invalid user credentials")
   }
 
@@ -128,12 +129,12 @@ const logoutUser=asyncHandler(async (req,res)=>{
    
    await User.findByIdAndUpdate(
     req.user._id,{
-     refreshToken:undefined
+     $set:{refreshToken:undefined}
    },{
     //it will return the updated user now
     new:true
    })
-})
+
 
 
 const options ={
@@ -147,6 +148,7 @@ return res.status(200)
 .json(
   new ApiResponse(200,{},"User logged out successfully")
 )
+})
 
 
 
