@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 const generateAccessAndRefreshTokens=async(userId)=>{
   try {
     
@@ -265,6 +266,124 @@ const updateUsercoverImage =asyncHandler(async (req,res)=>{
 })
 
 
+const getUserChannelProfile=asyncHandler(async (req,res)=>{
+  const {userName}=req.params
+  if(!userName?.trim()){
+    throw new ApiError(400,"User does not found")
+  }
+  const channel =await User.aggregate([
+    {
+      $match:{
+        userName:userName?.toLowerCase()
+      }
+    },
+    {
+      $lookup:{
+        from:"subscriptions",
+        localField:"_id",
+        foreignField:"channel",
+        as:"subscribers"
+      }
+    },
+    {//lookup is used to perfrom the join operation on the tables(documents)
+      $lookup:{
+        from:"subscriptions",
+        localField:"_id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+
+      }
+    },
+    {
+      //addFields is used to add new fields to the existing object but these are not present into the database
+      $addFields:{
+        subscribersCount:{
+          //size is used to count the number in the field , here $ is used before subscribers because it is a field here
+          $size:"$subscribers"
+        },
+
+        channelsSubscribedToCount:{
+            $size:"$subscribedTo"
+        },
+        isSubscribed:{
+          $cond:{
+            //$in : can checks in both object and array,here object
+            if:{$in: [req.user?._id,"$subscribers.subscriber"]},
+            then:true,
+            else:false
+          }
+        }
+      }
+    },
+    {//project is used to list out the specific/allowed information(fields) 
+      $project:{
+        fullName:1,
+        userName:1,
+        avatar:1,
+        coverImage:1,
+        subscribersCount:1,
+        channelsSubscribedToCount:1,
+        isSubscribed:1,
+      }
+    }
+  ])
+  if(!channel?.length){
+    throw new ApiError(404,"Channel does not exists")
+  }
+  return res.status(200).json(new ApiResponse(
+    200,channel[0],"Channel fetched successfully"
+  ))
+})
+
+const getWatchHistory=asyncHandler(async (req,res)=>{
+  const user=await User.aggregate([{
+    //important for interview
+    //in aggreate pipelines code is directly intereact with the mongodb without mongoose
+    //generally req.user._id will return you a "string" but with the help of mongoose, it internally convert it into mongodb id as ObjectId("string")
+    $match:{
+      _id:new mongoose.Types.ObjectId(req.user._id)
+  }
+},
+    {
+       $lookup:{
+        from:"videos",
+        localField:"watchHistory",
+        foreignField:"_id",
+        as:"watchHistory",
+        pipeline:[
+          {
+            $lookup:{
+              from:"users",
+              localField:"owner",
+              foreignField:"_id",
+              as:"owner",
+              pipeline:[
+                {
+                  $project:{
+                    usernameatar:1,
+                    fullName:1,
+                    avatar:1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $addFields:{
+              owner:{
+                //used to pick the first element from the array or $Arrayelementat
+                $first:"$owner"
+              }
+            }
+          }
+        ]
+
+       }
+     }
+    ])
+    return res.status(200).json(new ApiResponse(200,user[0].getWatchHistory,"watch history fetched successfully"))
+}) 
+
 
 export {registerUser,
   updateUserAvatar,
@@ -273,4 +392,5 @@ export {registerUser,
   refreshAccessToken,
   changeCurrentPassword
   ,getCurrentUser,
-  updateAccountDetails}
+  updateAccountDetails,
+  getUserChannelProfile,getWatchHistory}
