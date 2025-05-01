@@ -393,4 +393,6 @@ export {registerUser,
   changeCurrentPassword
   ,getCurrentUser,
   updateAccountDetails,
+  updateUserAvatar,
+  updateUsercoverImage,
   getUserChannelProfile,getWatchHistory}
